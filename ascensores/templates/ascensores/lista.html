@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascensores Valparaíso</title>
+</head>
+<body>
+    <h1>Estado de los Ascensores en Tiempo Real</h1>
+    
+    <ul>
+        {% for ascensor in ascensores %}
+            <li>
+                <strong>{{ ascensor.nombre }}</strong> - Estado: {{ ascensor.estado }}
+                <br>
+                Horario: {{ ascensor.horario_apertura }} a {{ ascensor.horario_cierre }}
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
