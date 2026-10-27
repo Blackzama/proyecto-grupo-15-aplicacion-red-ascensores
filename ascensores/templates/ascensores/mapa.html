@@ -1,0 +1,35 @@
+{% extends 'ascensores/base.html' %}
+
+{% block content %}
+<div style="padding: 15px;">
+    <h2>Mapa en Tiempo Real</h2>
+    <!-- El mapa ocupa casi toda la pantalla (75vh) como elemento principal -->
+    <div id="map" style="height: 75vh; width: 100%; border-radius: 12px; border: 1px solid #ccc;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 1. Centrar mapa en Valparaíso
+    const map = L.map('map').setView([-33.0472, -71.6127], 14);
+
+    // 2. Capa base gráfica
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
+
+    // 3. Dibujar todos los marcadores en la vista del mapa
+    {% for ascensor in ascensores %}
+        {% if ascensor.latitud and ascensor.longitud %}
+            L.marker([{{ ascensor.latitud }}, {{ ascensor.longitud }}])
+                .addTo(map)
+                .bindPopup(
+                    "<b>{{ ascensor.nombre }}</b><br>" +
+                    "Estado: {{ ascensor.get_estado_display }}<br>" +
+                    "{% if ascensor.horario_apertura and ascensor.horario_cierre %}Horario: {{ ascensor.horario_apertura|time:'H:i' }} - {{ ascensor.horario_cierre|time:'H:i' }}{% endif %}"
+                );
+        {% endif %}
+    {% endfor %}
+</script>
+{% endblock %}

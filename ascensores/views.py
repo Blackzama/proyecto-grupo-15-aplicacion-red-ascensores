@@ -3,7 +3,11 @@ from .models import Ascensor
 
 def lista_ascensores(request):
 
-    todos_los_ascensores = Ascensor.objects.all()
+    ascensores = Ascensor.objects.all()
     
 
-    return render(request, 'ascensores/lista.html', {'ascensores': todos_los_ascensores})
+    return render(request, 'ascensores/lista.html', {'ascensores': ascensores})
+
+def vista_mapa(request):
+    ascensores = Ascensor.objects.all()
+    return render(request, 'ascensores/mapa.html', {'ascensores': ascensores})

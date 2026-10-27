@@ -1,21 +1,50 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ascensores Valparaíso</title>
-</head>
-<body>
-    <h1>Estado de los Ascensores en Tiempo Real</h1>
-    
+{% extends 'ascensores/base.html' %}
+
+{% block content %}
+<div style="padding: 20px;">
+    <h2>Ascensores del Gran Valparaíso</h2>
+
     <ul>
-        {% for ascensor in ascensores %}
-            <li>
-                <strong>{{ ascensor.nombre }}</strong> - Estado: {{ ascensor.estado }}
-                <br>
-                Horario: {{ ascensor.horario_apertura }} a {{ ascensor.horario_cierre }}
-            </li>
-        {% endfor %}
+    {% for ascensor in ascensores %}
+        <li>
+            <strong>{{ ascensor.nombre }}</strong> - Estado: {{ ascensor.get_estado_display }}
+            {% if ascensor.horario_apertura and ascensor.horario_cierre %}
+                <br>Horario: {{ ascensor.horario_apertura|time:"H:i" }} a {{ ascensor.horario_cierre|time:"H:i" }}
+            {% endif %}
+        </li>
+    {% empty %}
+        <li>No hay ascensores registrados en la base de datos.</li>
+    {% endfor %}
     </ul>
-</body>
-</html>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Estado de la Red (Mapa)</h2>
+    <div id="map" style="height: 500px; width: 100%; border-radius: 12px; border: 1px solid #ccc;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Inicializar mapa en Valparaíso
+    const map = L.map('map').setView([-33.0472, -71.6127], 14);
+
+    // Capa base del mapa
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
+
+    // Marcadores dinámicos traídos desde SQLite
+    {% for ascensor in ascensores %}
+        {% if ascensor.latitud and ascensor.longitud %}
+            L.marker([{{ ascensor.latitud }}, {{ ascensor.longitud }}])
+                .addTo(map)
+                .bindPopup(
+                    "<b>{{ ascensor.nombre }}</b><br>" +
+                    "Estado: {{ ascensor.get_estado_display }}"
+                );
+        {% endif %}
+    {% endfor %}
+</script>
+{% endblock %}

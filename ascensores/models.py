@@ -15,6 +15,8 @@ class Ascensor(models.Model):
     horario_apertura = models.TimeField(null=True, blank=True, verbose_name="Horario de Apertura")
     horario_cierre = models.TimeField(null=True, blank=True, verbose_name="Horario de Cierre")
 
+    latitud = models.FloatField(null=True, blank=True, verbose_name="Latitud")
+    longitud = models.FloatField(null=True, blank=True, verbose_name="Longitud")
 
     def __str__(self):
         return self.nombre

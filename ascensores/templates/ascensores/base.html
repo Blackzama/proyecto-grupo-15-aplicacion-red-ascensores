@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascensores Valparaíso</title>
+    
+    <!-- CSS de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        nav {
+            background-color: #1a252f;
+            padding: 12px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        nav a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background-color: #34495e;
+        }
+        nav a:hover {
+            background-color: #2c3e50;
+        }
+    </style>
+</head>
+<body style="margin: 0; font-family: system-ui, sans-serif;">
+
+    <header>
+        <h1>Red de Ascensores de Valparaíso</h1>
+    </header>
+    <nav>
+        <span style="color: white; font-weight: bold; margin-right: 15px;">Ascensores Valparaíso</span>
+        <a href="{% url 'lista_ascensores' %}">📋 Ver Lista</a>
+        <a href="{% url 'mapa_ascensores' %}">🗺️ Ver Mapa</a>
+    </nav>
+
+    <main>
+        {% block content %}
+        <!-- Aquí se inyectará el contenido de lista.html -->
+        {% endblock %}
+    </main>
+
+    <!-- JS de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    {% block scripts %}
+    <!-- Scripts particulares -->
+    {% endblock %}
+</body>
+</html>
