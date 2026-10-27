@@ -20,45 +20,48 @@
     <hr style="margin: 30px 0;">
 
     <h2>Estado de la Red (Mapa)</h2>
-    <div id="map" style="height: 500px; width: 50%; border-radius: 12px; border: 1px solid #ccc;"></div>
+    <div id="map" style="height: 500px; width: 100%; border-radius: 12px; border: 1px solid #ccc;"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Inyección segura de datos desde Django -->
+{{ ascensores_js|json_script:"ascensores-data" }}
+
 <script>
-    // Inicializar mapa en Valparaíso
+    // 1. Crear el mapa
     const map = L.map('map').setView([-33.0472, -71.6127], 14);
 
-    // Capa base del mapa
+    // 2. Capa base de Esri
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China, TomTom'
+        attribution: 'Tiles &copy; Esri'
     }).addTo(map);
 
-    const iconoEstandar = L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
+    // 3. Leer los datos JSON que entregó Django
+    const datosAscensores = JSON.parse(document.getElementById('ascensores-data').textContent);
+    console.log("Ascensores recibidos:", datosAscensores);
+
+    // Lista para guardar las referencias de los marcadores
+    const listaMarcadores = [];
+
+    // 4. Dibujar un marcador por cada ascensor
+    datosAscensores.forEach(ascensor => {
+        const marker = L.marker([ascensor.lat, ascensor.lng]).addTo(map);
+
+        let contenidoPopup = `<b>${ascensor.nombre}</b><br>Estado: ${ascensor.estado}`;
+        if (ascensor.horario) {
+            contenidoPopup += `<br><small>🕒 ${ascensor.horario}</small>`;
+        }
+
+        marker.bindPopup(contenidoPopup);
+        listaMarcadores.push(marker);
     });
 
-    // Marcadores dinámicos traídos desde SQLite
-    {% for ascensor in ascensores %}
-        {%if ascensor.latitud and ascensor.longitud %}
-            L.marker([{{ ascensor.latitud}}, {{ ascensor.longitud}}])
-                .addTo(map)
-                .bindPopup(`
-                <div style= "font-family: sans-serif;">
-                    <h4 style="margin: 0 0 5px 0;">{{ascensor.nombre}}</h4> 
-                    <p style="margin: 0;"><b>Estado:</b> {{ascensor.get_estado_display}}</p>
-                    {% if ascensor.horario_apertura and ascensor.horario_cierre %}
-                        <small>{{ascensor.horario_apertura|time:"H:i"}} a {{ascensor.horario_cierre|time:"H:i"}}</small>
-                    {% endif %}
-                </div>
-                `);
-        {%endif%}
-    {% endfor %}   
+    // 5. Ajustar el zoom automáticamente para enfocar TODOS los marcadores
+    if (listaMarcadores.length > 0) {
+        const grupo = L.featureGroup(listaMarcadores);
+        map.fitBounds(grupo.getBounds().pad(0.1));
+    }
 </script>
 {% endblock %}
