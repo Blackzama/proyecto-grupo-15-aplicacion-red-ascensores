@@ -2,7 +2,7 @@
 
 {% block content %}
 <div style="padding: 15px;">
-    <h2>Mapa en Tiempo Real</h2>
+    <h2>Mapa de la Red de Ascensores</h2>
     <!-- El mapa ocupa casi toda la pantalla (75vh) como elemento principal -->
     <div id="map" style="height: 75vh; width: 100%; border-radius: 12px; border: 1px solid #ccc;"></div>
 </div>
@@ -14,9 +14,9 @@
     const map = L.map('map').setView([-33.0472, -71.6127], 14);
 
     // 2. Capa base gráfica
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China, TomTom'
     }).addTo(map);
 
     // 3. Dibujar todos los marcadores en la vista del mapa

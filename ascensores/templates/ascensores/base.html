@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ascensores Valparaíso</title>
+    <title>AscensoresValparaíso</title>
     
     <!-- CSS de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -31,14 +31,13 @@
 <body style="margin: 0; font-family: system-ui, sans-serif;">
 
     <header>
-        <h1>Red de Ascensores de Valparaíso</h1>
-    </header>
+    
     <nav>
         <span style="color: white; font-weight: bold; margin-right: 15px;">Ascensores Valparaíso</span>
         <a href="{% url 'lista_ascensores' %}">📋 Ver Lista</a>
         <a href="{% url 'mapa_ascensores' %}">🗺️ Ver Mapa</a>
     </nav>
-
+    </header>
     <main>
         {% block content %}
         <!-- Aquí se inyectará el contenido de lista.html -->
