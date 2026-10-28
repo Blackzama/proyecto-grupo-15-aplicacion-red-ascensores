@@ -6,6 +6,7 @@ class Ascensor(models.Model):
         ('operativo', 'Operativo'),
         ('mantencion', 'En Mantención'),
         ('cerrado', 'Cerrado'),
+        ('institucional', 'Institucional'),
     ]
 
     nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Ascensor")
