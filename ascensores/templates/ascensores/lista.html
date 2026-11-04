@@ -83,6 +83,11 @@
         if (ascensor.horario) {
             contenidoPopup += `<br><small>🕒 ${ascensor.horario}</small>`;
         }
+        if (ascensor.distancia !== null) {
+            contenidoPopup += `<br><small>📍 Distancia: ${ascensor.distancia} km</small>`;
+        } else {
+            contenidoPopup += `<br><small>📍 Distancia: Presiona el botón para calcular</small>`;
+        }
 
         marker.bindPopup(contenidoPopup);
         listaMarcadores.push(marker);
