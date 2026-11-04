@@ -4,19 +4,30 @@
 <div style="padding: 20px;">
     <h2>Ascensores del Gran Valparaíso</h2>
 
+    <div style="margin-bottom: 20px; text-align: right;">
+        <button onclick="obtenerUbicacionYCalcular()" style="background-color: #007bff; color: black; font-size: 16px; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            📍 Calcular distancia a los ascensores desde mi posición
+        </button>
+    </div>
+
     <ul style="display: flex; flex-wrap: wrap; list-style: none; padding: 0; margin: 0;">
-    {% for ascensor in ascensores %}
-        <li style="width: 25%; box-sizing: border-box; padding: 8px;">
-            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background-color: #ffffff; height: 100%; font-size: 18px;">   
-                <strong>{{ ascensor.nombre }}</strong> - Estado: {{ ascensor.get_estado_display }}
-                {% if ascensor.horario_apertura and ascensor.horario_cierre %}
-                  <br>Horario: {{ ascensor.horario_apertura|time:"H:i" }} a {{ ascensor.horario_cierre|time:"H:i" }}
-                {% endif %}
-            </div>
-        </li>
-    {% empty %}
-        <li>No hay ascensores registrados en la base de datos.</li>
-    {% endfor %}
+        {% for item in ascensores_js %}
+            <li style="width: 25%; box-sizing: border-box; padding: 8px;">
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background-color: #ffffff; height: 100%; font-size: 18px;">   
+                    <strong>{{ item.nombre }}</strong> - Estado: {{ item.estado_texto }}
+                    {% if item.horario %}
+                    <br>Horario: {{ item.horario }}
+                    {% endif %}
+                    {% if item.distancia is not None %}
+                        <br><span style="color: green; font-weight: bold;">Estas a {{ item.distancia }} km</span>
+                    {% else %}
+                        <br><span style="color: gray; font-size: 14px;">Presiona el boton para ver distancia</span>
+                    {% endif %}
+                </div>
+            </li>
+        {% empty %}
+            <li>No hay ascensores registrados en la base de datos.</li>
+        {% endfor %}
     </ul>
 
     <hr style="margin: 30px 0;">
@@ -82,5 +93,26 @@
         const grupo = L.featureGroup(listaMarcadores);
         map.fitBounds(grupo.getBounds().pad(0.1));
     }
+
+    // 7. Mostrar la distancia a los ascensores
+    function obtenerUbicacionYCalcular() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    // Esto recarga la página enviando la ubicación por la URL
+                    window.location.href = `?lat=${lat}&lon=${lon}`;
+                },
+                (error) => {
+                    alert("No pudimos obtener tu ubicación. Asegúrate de dar permisos en el navegador.");
+                    console.error(error);
+                }
+            );
+        } else {
+            alert("Tu navegador no soporta geolocalización.");
+        }
+    }
 </script>
+
 {% endblock %}
