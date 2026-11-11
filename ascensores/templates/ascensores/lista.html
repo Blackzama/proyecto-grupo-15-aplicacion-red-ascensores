@@ -1,123 +1,553 @@
 {% extends 'ascensores/base.html' %}
+{% load static %}
 
 {% block content %}
-<div style="padding: 20px;">
-    <h2>Ascensores del Gran Valparaíso</h2>
+<style>
+    /* CONTENEDOR PRINCIPAL */
+    #mainContainer {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+        padding: 10px 14px;
+        gap: 12px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
 
-    <div style="margin-bottom: 20px; text-align: right;">
-        <button onclick="obtenerUbicacionYCalcular()" style="background-color: #007bff; color: black; font-size: 16px; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-            📍 Calcular distancia a los ascensores desde mi posición
-        </button>
-    </div>
+    /* COLUMNA IZQUIERDA (LISTA) */
+    #sidebarColumna {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+        height: 100%;
+        padding: 4px 6px;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        min-width: 0;
+    }
 
-    <ul style="display: flex; flex-wrap: wrap; list-style: none; padding: 0; margin: 0;">
-        {% for item in ascensores_js %}
-            <li style="width: 25%; box-sizing: border-box; padding: 8px;">
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background-color: #ffffff; height: 100%; font-size: 18px;">   
-                    <strong>{{ item.nombre }}</strong> - Estado: {{ item.estado_texto }}
-                    {% if item.horario %}
-                    <br>Horario: {{ item.horario }}
-                    {% endif %}
+    /* ESTADO MINIMIZADO DE LA LISTA */
+    #sidebarColumna.minimized {
+        flex: 0 0 70px !important;
+        overflow: hidden;
+    }
+
+    #sidebarColumna.minimized .card-grid-container,
+    #sidebarColumna.minimized .sidebar-title-text,
+    #sidebarColumna.minimized #btnUbicacion {
+        display: none !important;
+    }
+
+    #sidebarColumna.minimized .sidebar-header {
+        justify-content: center !important;
+    }
+
+    /* DISEÑO OPTIMIZADO DE LAS TARJETAS */
+    .card {
+        background-color: #ffffff !important;
+        border: 1px solid #334155 !important;
+        border-radius: 9px;
+        box-shadow: 0 3px 5px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+        user-select: none;
+        -webkit-user-select: none;
+        will-change: transform, box-shadow;
+        padding: 6px 8px !important; /* Espaciado interno más compacto y seguro */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        border-color: #38bdf8 !important;
+        box-shadow: 0 6px 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .card.selected {
+        background-color: #e0f2fe !important;
+        border: 2px solid #0284c7 !important;
+        transform: scale(1.02);
+        z-index: 10;
+        box-shadow: 0 8px 16px -2px rgba(2, 132, 199, 0.4) !important;
+    }
+
+    .status-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    .dot-operativo { background-color: #16a34a; }
+    .dot-cerrado { background-color: #dc2626; }
+    .dot-mantencion, 
+    .dot-en-mantencion { background-color: #eab308; }
+    .dot-institucional { background-color: #9333ea; }
+
+    /* CONTENEDOR DE LIKE Y DISLIKE MÁS COMPACTO */
+    .reaction-container {
+        display: flex;
+        gap: 5px;
+        margin: 2px 0;
+    }
+
+    .btn-reaction {
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        padding: 2px 6px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-reaction:hover {
+        background-color: #e2e8f0;
+        border-color: #94a3b8;
+    }
+
+    .btn-reaction.liked {
+        background-color: #dcfce7;
+        color: #15803d;
+        border-color: #86efac;
+    }
+
+    .btn-reaction.disliked {
+        background-color: #fee2e2;
+        color: #b91c1c;
+        border-color: #fca5a5;
+    }
+
+    #btnUbicacion {
+        background-color: #0284c7;
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    #btnUbicacion:hover {
+        background-color: #0369a1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(2, 132, 199, 0.35);
+    }
+
+    /* ESTILOS DE MARCADORES VECTORIALES */
+    .custom-marker-wrapper {
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .elevator-pin-container {
+        width: 38px;
+        height: 38px;
+        position: relative;
+        will-change: transform;
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .elevator-pin-body {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+        border: 2.5px solid #ffffff;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .elevator-pin-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .elevator-pin-icon svg { width: 100%; height: 100%; fill: currentColor; }
+
+    .elevator-pin-container.is-selected {
+        transform: translateY(-10px) scale(1.25);
+        z-index: 9999 !important;
+    }
+
+    .elevator-pin-container.is-selected .elevator-pin-body {
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 12px 22px rgba(0, 0, 0, 0.5);
+    }
+
+    .elevator-pin-container.is-selected .elevator-pin-icon {
+        transform: rotate(45deg);
+    }
+
+    .elevator-pin-body.operativo { background-color: #16a34a; }
+    .elevator-pin-body.cerrado { background-color: #dc2626; }
+    .elevator-pin-body.mantencion, .elevator-pin-body.en-mantencion { background-color: #eab308; }
+    .elevator-pin-body.institucional { background-color: #9333ea; }
+
+    .user-location-ping {
+        position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    }
+    .user-location-dot {
+        width: 14px; height: 14px; background-color: #0284c7; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 0 10px rgba(2, 132, 199, 0.9); z-index: 2;
+    }
+    .user-location-ping::after {
+        content: ''; position: absolute; width: 26px; height: 26px; border-radius: 50%; background-color: rgba(2, 132, 199, 0.45); z-index: 1; animation: pulse-ring 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    @keyframes pulse-ring {
+        0% { transform: scale(0.6); opacity: 1; }
+        100% { transform: scale(2.6); opacity: 0; }
+    }
+</style>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<div id="mainContainer">
+
+    <!-- COLUMNA IZQUIERDA: LISTA Y SWITCH -->
+    <div id="sidebarColumna">
+        
+        <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h2 class="sidebar-title-text" style="margin: 0; font-size: 1.35rem; color: #f8fafc; white-space: nowrap;">Ascensores</h2>
+                <!-- SWITCH / BOTÓN REVERSIBLE PARA MINIMIZAR/MAXIMIZAR -->
+                <button onclick="toggleListaMapa()" id="btnToggleLista" title="Minimizar/Restaurar Lista" style="background-color: #334155; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s;">
+                    🗺️ <span id="textoToggle">Minimizar</span>
+                </button>
+            </div>
+
+            <button id="btnUbicacion" onclick="obtenerUbicacionYCalcular()">
+                📍 Mi Ubicación
+            </button>
+        </div>
+
+        <div class="card-grid-container" style="display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); gap: 6px; flex: 1; overflow-y: auto; overflow-x: visible; padding-right: 4px;">
+            {% for item in ascensores_js %}
+                <div class="card" data-index="{{ forloop.counter0 }}">
+                    <div>
+                        <!-- Título ajustado -->
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 1px;">
+                            <span class="status-dot dot-{{ item.estado|slugify }}"></span>
+                            <strong style="color: #0f172a; font-size: 1.15rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ item.nombre }}
+                            </strong>
+                        </div>
+                        
+                        <!-- Estado con tipografía compacta -->
+                        <div style="font-size: 12px; color: #334155; line-height: 1.1;">
+                            Estado: <strong>{{ item.estado_texto }}</strong>
+                        </div>
+                        
+                        <!-- Horario ajustado -->
+                        {% if item.horario %}
+                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-top: 2px; line-height: 1.1;">
+                                🕒 {{ item.horario }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- SISTEMA DE LIKE Y DISLIKE -->
+                    <div class="reaction-container">
+                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'like')">
+                            👍 <span class="like-count">0</span>
+                        </button>
+                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'dislike')">
+                            👎 <span class="dislike-count">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Distancia optimizada para que nunca se corte -->
                     {% if item.distancia is not None %}
-                        <br><span style="color: green; font-weight: bold;">Estas a {{ item.distancia }} km</span>
+                        <div class="distancia-texto" style="color: #15803d; font-weight: bold; font-size: 12px; line-height: 1;">
+                            📍 A {{ item.distancia }} km
+                        </div>
                     {% else %}
-                        <br><span style="color: gray; font-size: 14px;">Presiona el boton para ver distancia</span>
+                        <div class="distancia-texto" style="color: #64748b; font-size: 11px; line-height: 1;">
+                            Sin calcular
+                        </div>
                     {% endif %}
                 </div>
-            </li>
-        {% empty %}
-            <li>No hay ascensores registrados en la base de datos.</li>
-        {% endfor %}
-    </ul>
+            {% empty %}
+                <p style="font-size: 16px; color: #f8fafc;">No hay ascensores registrados.</p>
+            {% endfor %}
+        </div>
+    </div>
 
-    <hr style="margin: 30px 0;">
+    <!-- COLUMNA DERECHA: MAPA -->
+    <div id="mapContainer" style="flex: 1.5; height: 100%; transition: flex 0.3s ease;">
+        <div id="map" style="width: 100%; height: 100%; border-radius: 12px; border: 1px solid #334155;"></div>
+    </div>
 
-    <h2>Estado de la Red (Mapa)</h2>
-    <div id="map" style="height: 500px; width: 100%; border-radius: 12px; border: 1px solid #ccc;"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- Inyección de datos JSON -->
 {{ ascensores_js|json_script:"ascensores-data" }}
 
 <script>
-    // 1. Inicializar el mapa
     const map = L.map('map').setView([-33.0472, -71.6127], 14);
 
-    // 2. Capa base de Esri
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
         attribution: 'Tiles &copy; Esri'
     }).addTo(map);
 
-    // 3. Creacion de los marcadores
-    const crearIcono = (color) => L.icon({
-        iconUrl: `https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-${color}.png`,
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    });
-    // Definir el color de los íconos según el estado del ascensor
-    const iconosPorEstado = {
-        'operativo': crearIcono('green'),       // Verde
-        'mantencion': crearIcono('gold'),       // Amarillo / Dorado
-        'cerrado': crearIcono('red'),           // Rojo
-        'institucional': crearIcono('violet')   // Violeta / Morado
+    const svgCableCarIcon = `
+        <svg viewBox="0 0 512 512" fill="currentColor">
+            <path d="M0 64h512v24H0z"/>
+            <circle cx="236" cy="76" r="14"/>
+            <circle cx="276" cy="76" r="14"/>
+            <path d="M256 88v48h-80a12 12 0 00-12 12v24h184v-24a12 12 0 00-12-12h-80V88z"/>
+            <path d="M96 216c-17.7 0-32 14.3-32 32v180c0 17.7 14.3 32 32 32h320c17.7 0 32-14.3 32-32V248c0-17.7-14.3-32-32-32H96zm24 24h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm-216 112h320v84H96v-84zm140 24a8 8 0 100 16 8 8 0 000-16z"/>
+        </svg>
+    `;
+
+    const crearIconoVectorial = (estadoClave) => {
+        const estadoLimpio = estadoClave.replace(/\s+/g, '-');
+        return L.divIcon({
+            className: 'custom-marker-wrapper',
+            html: `
+                <div class="elevator-pin-container">
+                    <div class="elevator-pin-body ${estadoLimpio}">
+                        <span class="elevator-pin-icon">${svgCableCarIcon}</span>
+                    </div>
+                </div>
+            `,
+            iconSize: [38, 38],
+            iconAnchor: [19, 19],
+            popupAnchor: [0, -19]
+        });
     };
-    // 4. Leer los datos enviados por Django
+
     const datosAscensores = JSON.parse(document.getElementById('ascensores-data').textContent);
     const listaMarcadores = [];
+    let tarjetasDOM = document.querySelectorAll('.card');
+    let cambiandoSeleccionProgramatica = false;
+    let userMarker = null;
 
-    // 5. Dibujar cada marcador con su color respectivo
-    datosAscensores.forEach(ascensor => {
-        // Selecciona el ícono según el estado (o usa el verde por defecto)
-        const clave = ascensor.estado ? ascensor.estado.toLowerCase().trim() : 'operativo';
-        const iconoSeleccionado = iconosPorEstado[clave] || iconosPorEstado['operativo'];
-
-        const marker = L.marker([ascensor.lat, ascensor.lng], { icon: iconoSeleccionado }).addTo(map);
-
-        let contenidoPopup = `<b>${ascensor.nombre}</b><br>Estado: ${ascensor.estado_texto}`;
-        if (ascensor.horario) {
-            contenidoPopup += `<br><small>🕒 ${ascensor.horario}</small>`;
-        }
-        if (ascensor.distancia !== null) {
-            contenidoPopup += `<br><small>📍 Distancia: ${ascensor.distancia} km</small>`;
+    function toggleListaMapa() {
+        const sidebar = document.getElementById('sidebarColumna');
+        const texto = document.getElementById('textoToggle');
+        
+        sidebar.classList.toggle('minimized');
+        
+        if (sidebar.classList.contains('minimized')) {
+            texto.innerText = "Restaurar";
         } else {
-            contenidoPopup += `<br><small>📍 Distancia: Presiona el botón para calcular</small>`;
+            texto.innerText = "Minimizar";
         }
+        setTimeout(() => { map.invalidateSize(); }, 350);
+    }
+
+    // POPUPS LIMPIOS (SIN FOTOS)
+    datosAscensores.forEach((ascensor, idx) => {
+        const claveEstado = ascensor.estado ? ascensor.estado.toLowerCase().trim() : 'operativo';
+        const iconoVector = crearIconoVectorial(claveEstado);
+        const marker = L.marker([ascensor.lat, ascensor.lng], { icon: iconoVector }).addTo(map);
+        
+        let contenidoPopup = `
+            <div style="width: 190px; font-family: system-ui, sans-serif; padding: 2px;">
+                <b style="font-size: 16px; color: #0f172a; display: block; margin-bottom: 4px;">${ascensor.nombre}</b>
+                <div style="font-size: 13px; color: #334155;">Estado: <strong>${ascensor.estado_texto}</strong></div>
+        `;
+        if (ascensor.horario) contenidoPopup += `<div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 3px;">🕒 ${ascensor.horario}</div>`;
+        if (ascensor.distancia !== null) contenidoPopup += `<div style="font-size: 13px; color: #15803d; font-weight: bold; margin-top: 4px;">📍 A ${ascensor.distancia} km</div>`;
+        contenidoPopup += `</div>`;
 
         marker.bindPopup(contenidoPopup);
+        marker.on('click', () => { seleccionarElementoPorIndice(idx); });
         listaMarcadores.push(marker);
     });
 
-    // 6. Ajustar la vista del mapa para que todos los marcadores sean visibles
-    if (listaMarcadores.length > 0) {
+    function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        return (R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))).toFixed(2);
+    }
+
+    function mostrarUbicacionEnMapa(lat, lon, volar = true) {
+        const iconoUbicacion = L.divIcon({
+            className: 'custom-marker-wrapper',
+            html: `<div class="user-location-ping"><div class="user-location-dot"></div></div>`,
+            iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13]
+        });
+
+        if (userMarker) {
+            userMarker.setLatLng([lat, lon]);
+        } else {
+            userMarker = L.marker([lat, lon], { icon: iconoUbicacion, zIndexOffset: 10000 }).addTo(map);
+            userMarker.bindPopup('<div style="font-family:system-ui; padding:2px;"><b style="font-size:14px; color:#0284c7;">📍 Tu Ubicación Actual</b></div>');
+        }
+        if (volar) {
+            map.flyTo([lat, lon], 16, { duration: 1.5 });
+            userMarker.openPopup();
+        }
+    }
+
+    function actualizarDistanciasEnInterfaz(userLat, userLon) {
+        datosAscensores.forEach((ascensor, idx) => {
+            const dist = calcularDistanciaHaversine(userLat, userLon, ascensor.lat, ascensor.lng);
+            ascensor.distancia = dist;
+            const card = tarjetasDOM[idx];
+            if (card) {
+                const distContainer = card.querySelector('.distancia-texto');
+                if (distContainer) {
+                    distContainer.style.color = "#15803d";
+                    distContainer.style.fontWeight = "bold";
+                    distContainer.style.fontSize = "12px";
+                    distContainer.innerText = `📍 A ${dist} km`;
+                }
+            }
+        });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const userLat = parseFloat(urlParams.get('lat'));
+    const userLon = parseFloat(urlParams.get('lon'));
+
+    if (!isNaN(userLat) && !isNaN(userLon)) {
+        mostrarUbicacionEnMapa(userLat, userLon, false);
+    } else if (listaMarcadores.length > 0) {
         const grupo = L.featureGroup(listaMarcadores);
         map.fitBounds(grupo.getBounds().pad(0.1));
     }
 
-    // 7. Mostrar la distancia a los ascensores
+    setTimeout(() => { map.invalidateSize(); }, 200);
+
     function obtenerUbicacionYCalcular() {
+        const btn = document.getElementById('btnUbicacion');
+        if (btn) btn.innerText = "⏳ Obteniendo...";
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    if (btn) btn.innerText = "📍 Mi Ubicación";
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    // Esto recarga la página enviando la ubicación por la URL
-                    window.location.href = `?lat=${lat}&lon=${lon}`;
+                    mostrarUbicacionEnMapa(lat, lon, true);
+                    actualizarDistanciasEnInterfaz(lat, lon);
+                    window.history.replaceState({}, '', `?lat=${lat}&lon=${lon}`);
                 },
                 (error) => {
-                    alert("No pudimos obtener tu ubicación. Asegúrate de dar permisos en el navegador.");
-                    console.error(error);
-                }
+                    if (btn) btn.innerText = "📍 Mi Ubicación";
+                    alert("No pudimos obtener tu ubicación. Activa los permisos en tu navegador.");
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
             );
         } else {
-            alert("Tu navegador no soporta geolocalización.");
+            if (btn) btn.innerText = "📍 Mi Ubicación";
+            alert("Navegador sin soporte de geolocalización.");
         }
     }
-</script>
 
+    function resetearAnimacionesMapa() {
+        document.querySelectorAll('.elevator-pin-container').forEach(el => el.classList.remove('is-selected'));
+    }
+
+    function seleccionarElementoPorIndice(idx) {
+        cambiandoSeleccionProgramatica = true;
+        tarjetasDOM.forEach(c => c.classList.remove('selected'));
+        if (tarjetasDOM[idx]) tarjetasDOM[idx].classList.add('selected');
+
+        resetearAnimacionesMapa();
+        const ascensor = datosAscensores[idx];
+        const marker = listaMarcadores[idx];
+
+        if (marker && ascensor) {
+            const markerDOM = marker.getElement();
+            if (markerDOM) {
+                const pinContainer = markerDOM.querySelector('.elevator-pin-container');
+                if (pinContainer) pinContainer.classList.add('is-selected');
+            }
+            map.flyTo([ascensor.lat, ascensor.lng], 16, { duration: 1.2, easeLinearity: 0.25 });
+            marker.openPopup();
+        }
+        setTimeout(() => { cambiandoSeleccionProgramatica = false; }, 100);
+    }
+
+    document.addEventListener('click', function(e) {
+        const card = e.target.closest('.card');
+        if (card && !e.target.closest('.btn-reaction')) {
+            const idx = parseInt(card.getAttribute('data-index'), 10);
+            seleccionarElementoPorIndice(idx);
+        }
+    });
+
+    map.on('popupclose', () => {
+        if (!cambiandoSeleccionProgramatica) {
+            resetearAnimacionesMapa();
+            tarjetasDOM.forEach(c => c.classList.remove('selected'));
+        }
+    });
+
+    // LÓGICA DEL SISTEMA DE LIKES Y DISLIKES
+    function registrarReaccion(button, tipo) {
+        const container = button.closest('.reaction-container');
+        const likeBtn = container.querySelector('.btn-reaction:nth-child(1)');
+        const dislikeBtn = container.querySelector('.btn-reaction:nth-child(2)');
+        
+        const likeCountSpan = likeBtn.querySelector('.like-count');
+        const dislikeCountSpan = dislikeBtn.querySelector('.dislike-count');
+        
+        let likes = parseInt(likeCountSpan.innerText);
+        let dislikes = parseInt(dislikeCountSpan.innerText);
+
+        if (tipo === 'like') {
+            if (likeBtn.classList.contains('liked')) {
+                likeBtn.classList.remove('liked');
+                likes -= 1;
+            } else {
+                likeBtn.classList.add('liked');
+                likes += 1;
+                if (dislikeBtn.classList.contains('disliked')) {
+                    dislikeBtn.classList.remove('disliked');
+                    dislikes -= 1;
+                }
+            }
+        } else if (tipo === 'dislike') {
+            if (dislikeBtn.classList.contains('disliked')) {
+                dislikeBtn.classList.remove('disliked');
+                dislikes -= 1;
+            } else {
+                dislikeBtn.classList.add('disliked');
+                dislikes += 1;
+                if (likeBtn.classList.contains('liked')) {
+                    likeBtn.classList.remove('liked');
+                    likes -= 1;
+                }
+            }
+        }
+
+        likeCountSpan.innerText = likes;
+        dislikeCountSpan.innerText = dislikes;
+    }
+</script>
 {% endblock %}

@@ -3,52 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AscensoresValparaíso</title>
+    <title>Ascensores Valparaíso</title>
     
-    <!-- CSS de Leaflet -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <style>
-        nav {
-            background-color: #1a252f;
-            padding: 12px 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
+        * { box-sizing: border-box; }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: system-ui, sans-serif;
+            background-color: #0f172a;
+            overflow: hidden;
         }
-        nav a {
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: bold;
-            padding: 6px 12px;
-            border-radius: 6px;
-            background-color: #34495e;
-        }
-        nav a:hover {
-            background-color: #2c3e50;
+
+        main {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
         }
     </style>
 </head>
-<body style="margin: 0; font-family: system-ui, sans-serif;">
+<body>
 
-    <header>
-    
-    <nav>
-        <span style="color: white;font-size: 25px; font-weight: bold; margin-right: 20px;">Ascensores Valparaíso</span>
-        <a href="{% url 'lista_ascensores' %}" style="font-size: 20px;">📋 Ver Lista</a>
-        <a href="{% url 'mapa_ascensores' %}" style="font-size: 20px;">🗺️ Ver Mapa</a>
-    </nav>
-    </header>
     <main>
         {% block content %}
-        <!-- Aquí se inyectará el contenido de lista.html -->
         {% endblock %}
     </main>
 
-    <!-- JS de Leaflet -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     {% block scripts %}
-    <!-- Scripts particulares -->
     {% endblock %}
+
 </body>
 </html>
