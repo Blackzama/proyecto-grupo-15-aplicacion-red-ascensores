@@ -3,551 +3,208 @@
 
 {% block content %}
 <style>
-    /* CONTENEDOR PRINCIPAL */
-    #mainContainer {
-        display: flex;
-        height: 100vh;
-        width: 100%;
-        padding: 10px 14px;
-        gap: 12px;
-        box-sizing: border-box;
-        overflow: hidden;
-    }
+    #mainContainer { display: flex; height: 100vh; width: 100%; padding: 10px 14px; gap: 12px; box-sizing: border-box; overflow: hidden; }
+    #sidebarColumna { flex: 1; display: flex; flex-direction: column; height: 100%; padding: 4px 6px; transition: all 0.35s ease; min-width: 0; }
+    #sidebarColumna.minimized { flex: 0 0 70px !important; overflow: hidden; }
+    #sidebarColumna.minimized .card-grid-container, #sidebarColumna.minimized .sidebar-title-text, #sidebarColumna.minimized #btnUbicacion { display: none !important; }
+    #sidebarColumna.minimized .sidebar-header { justify-content: center !important; }
 
-    /* COLUMNA IZQUIERDA (LISTA) */
-    #sidebarColumna {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: visible;
-        height: 100%;
-        padding: 4px 6px;
-        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 0;
-    }
+    .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px; }
+    .sidebar-title-text { margin: 0; font-size: 1.35rem; color: #f8fafc; white-space: nowrap; }
+    
+    #btnToggleLista { background-color: #334155; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
+    #btnUbicacion { background-color: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    #btnUbicacion:hover { background-color: #0369a1; }
 
-    /* ESTADO MINIMIZADO DE LA LISTA */
-    #sidebarColumna.minimized {
-        flex: 0 0 70px !important;
-        overflow: hidden;
-    }
+    .card-grid-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); gap: 6px; flex: 1; overflow-y: auto; padding-right: 4px; }
+    
+    .card { background: #fff; border: 1px solid #334155; border-radius: 9px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; box-shadow: 0 3px 5px rgba(0,0,0,0.25); transition: 0.2s; }
+    .card:hover { transform: translateY(-2px); border-color: #38bdf8; }
+    .card.selected { background: #e0f2fe !important; border: 2px solid #0284c7 !important; transform: scale(1.02); z-index: 10; }
 
-    #sidebarColumna.minimized .card-grid-container,
-    #sidebarColumna.minimized .sidebar-title-text,
-    #sidebarColumna.minimized #btnUbicacion {
-        display: none !important;
-    }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-top: 3px; }
+    .dot-operativo { background: #16a34a; } .dot-cerrado { background: #dc2626; }
+    .dot-mantencion, .dot-en-mantencion { background: #eab308; } .dot-institucional { background: #9333ea; }
 
-    #sidebarColumna.minimized .sidebar-header {
-        justify-content: center !important;
-    }
+    .card-title { color: #0f172a; font-size: 0.9rem; font-weight: bold; line-height: 1.1; word-break: break-word; }
+    .card-info { font-size: 11px; color: #334155; margin-top: 2px; }
+    .card-schedule { font-size: 11.5px; font-weight: 600; color: #1e293b; margin-top: 1px; }
 
-    /* DISEÑO OPTIMIZADO DE LAS TARJETAS */
-    .card {
-        background-color: #ffffff !important;
-        border: 1px solid #334155 !important;
-        border-radius: 9px;
-        box-shadow: 0 3px 5px rgba(0, 0, 0, 0.25);
-        cursor: pointer;
-        position: relative;
-        z-index: 1;
-        user-select: none;
-        -webkit-user-select: none;
-        will-change: transform, box-shadow;
-        padding: 6px 8px !important; /* Espaciado interno más compacto y seguro */
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    }
+    .reaction-container { display: flex; gap: 5px; margin: 2px 0; }
+    .btn-reaction { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+    .btn-reaction.liked { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .btn-reaction.disliked { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
 
-    .card:hover {
-        transform: translateY(-2px);
-        border-color: #38bdf8 !important;
-        box-shadow: 0 6px 12px rgba(56, 189, 248, 0.3);
-    }
+    .distancia-texto { color: #15803d; font-weight: bold; font-size: 11px; }
+    .distancia-vacia { color: #64748b; font-size: 10.5px; }
 
-    .card.selected {
-        background-color: #e0f2fe !important;
-        border: 2px solid #0284c7 !important;
-        transform: scale(1.02);
-        z-index: 10;
-        box-shadow: 0 8px 16px -2px rgba(2, 132, 199, 0.4) !important;
-    }
+    #mapContainer { flex: 1.5; height: 100%; }
+    #map { width: 100%; height: 100%; border-radius: 12px; border: 1px solid #334155; }
 
-    .status-dot {
-        width: 11px;
-        height: 11px;
-        border-radius: 50%;
-        display: inline-block;
-        flex-shrink: 0;
-    }
+    .custom-marker-wrapper { background: transparent !important; border: none !important; }
+    .elevator-pin-container { width: 38px; height: 38px; position: relative; transition: transform 0.35s; }
+    .elevator-pin-body { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2.5px solid #fff; position: absolute; box-shadow: 0 4px 10px rgba(0,0,0,0.35); }
+    .elevator-pin-icon svg { width: 24px; height: 24px; fill: currentColor; }
+    .elevator-pin-body.operativo { background: #16a34a; } .elevator-pin-body.cerrado { background: #dc2626; }
+    .elevator-pin-body.mantencion, .elevator-pin-body.en-mantencion { background: #eab308; } .elevator-pin-body.institucional { background: #9333ea; }
 
-    .dot-operativo { background-color: #16a34a; }
-    .dot-cerrado { background-color: #dc2626; }
-    .dot-mantencion, 
-    .dot-en-mantencion { background-color: #eab308; }
-    .dot-institucional { background-color: #9333ea; }
-
-    /* CONTENEDOR DE LIKE Y DISLIKE MÁS COMPACTO */
-    .reaction-container {
-        display: flex;
-        gap: 5px;
-        margin: 2px 0;
-    }
-
-    .btn-reaction {
-        background-color: #f1f5f9;
-        color: #334155;
-        border: 1px solid #cbd5e1;
-        padding: 2px 6px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 11px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        transition: all 0.2s ease;
-    }
-
-    .btn-reaction:hover {
-        background-color: #e2e8f0;
-        border-color: #94a3b8;
-    }
-
-    .btn-reaction.liked {
-        background-color: #dcfce7;
-        color: #15803d;
-        border-color: #86efac;
-    }
-
-    .btn-reaction.disliked {
-        background-color: #fee2e2;
-        color: #b91c1c;
-        border-color: #fca5a5;
-    }
-
-    #btnUbicacion {
-        background-color: #0284c7;
-        color: white;
-        border: none;
-        padding: 10px 18px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 15px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
-    }
-
-    #btnUbicacion:hover {
-        background-color: #0369a1;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(2, 132, 199, 0.35);
-    }
-
-    /* ESTILOS DE MARCADORES VECTORIALES */
-    .custom-marker-wrapper {
-        background: transparent !important;
-        border: none !important;
-    }
-
-    .elevator-pin-container {
-        width: 38px;
-        height: 38px;
-        position: relative;
-        will-change: transform;
-        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .elevator-pin-body {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-        border: 2.5px solid #ffffff;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    .elevator-pin-icon {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .elevator-pin-icon svg { width: 100%; height: 100%; fill: currentColor; }
-
-    .elevator-pin-container.is-selected {
-        transform: translateY(-10px) scale(1.25);
-        z-index: 9999 !important;
-    }
-
-    .elevator-pin-container.is-selected .elevator-pin-body {
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        box-shadow: 0 12px 22px rgba(0, 0, 0, 0.5);
-    }
-
-    .elevator-pin-container.is-selected .elevator-pin-icon {
-        transform: rotate(45deg);
-    }
-
-    .elevator-pin-body.operativo { background-color: #16a34a; }
-    .elevator-pin-body.cerrado { background-color: #dc2626; }
-    .elevator-pin-body.mantencion, .elevator-pin-body.en-mantencion { background-color: #eab308; }
-    .elevator-pin-body.institucional { background-color: #9333ea; }
-
-    .user-location-ping {
-        position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-    }
-    .user-location-dot {
-        width: 14px; height: 14px; background-color: #0284c7; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 0 10px rgba(2, 132, 199, 0.9); z-index: 2;
-    }
-    .user-location-ping::after {
-        content: ''; position: absolute; width: 26px; height: 26px; border-radius: 50%; background-color: rgba(2, 132, 199, 0.45); z-index: 1; animation: pulse-ring 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-    }
-    @keyframes pulse-ring {
-        0% { transform: scale(0.6); opacity: 1; }
-        100% { transform: scale(2.6); opacity: 0; }
-    }
+    .user-location-ping { position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+    .user-location-dot { width: 14px; height: 14px; background: #0284c7; border: 2.5px solid #fff; border-radius: 50%; box-shadow: 0 0 10px rgba(2,132,199,0.9); z-index: 2; }
+    .user-location-ping::after { content: ''; position: absolute; width: 26px; height: 26px; border-radius: 50%; background: rgba(2,132,199,0.45); animation: pulse-ring 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1); }
+    @keyframes pulse-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
 </style>
 
-<!-- CONTENEDOR PRINCIPAL -->
 <div id="mainContainer">
-
-    <!-- COLUMNA IZQUIERDA: LISTA Y SWITCH -->
     <div id="sidebarColumna">
-        
-        <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px;">
+        <div class="sidebar-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <h2 class="sidebar-title-text" style="margin: 0; font-size: 1.35rem; color: #f8fafc; white-space: nowrap;">Ascensores</h2>
-                <!-- SWITCH / BOTÓN REVERSIBLE PARA MINIMIZAR/MAXIMIZAR -->
-                <button onclick="toggleListaMapa()" id="btnToggleLista" title="Minimizar/Restaurar Lista" style="background-color: #334155; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s;">
-                    🗺️ <span id="textoToggle">Minimizar</span>
-                </button>
+                <h2 class="sidebar-title-text">Ascensores</h2>
+                <button onclick="toggleListaMapa()" id="btnToggleLista">🗺️ <span id="textoToggle">Minimizar</span></button>
             </div>
-
-            <button id="btnUbicacion" onclick="obtenerUbicacionYCalcular()">
-                📍 Mi Ubicación
-            </button>
+            <button id="btnUbicacion" onclick="obtenerUbicacionYCalcular()">📍 Mi Ubicación</button>
         </div>
 
-        <div class="card-grid-container" style="display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); gap: 6px; flex: 1; overflow-y: auto; overflow-x: visible; padding-right: 4px;">
+        <div class="card-grid-container">
             {% for item in ascensores_js %}
                 <div class="card" data-index="{{ forloop.counter0 }}">
                     <div>
-                        <!-- Título ajustado -->
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 1px;">
+                        <div style="display: flex; align-items: flex-start; gap: 5px;">
                             <span class="status-dot dot-{{ item.estado|slugify }}"></span>
-                            <strong style="color: #0f172a; font-size: 1.15rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                {{ item.nombre }}
-                            </strong>
+                            <span class="card-title">{{ item.nombre }}</span>
                         </div>
-                        
-                        <!-- Estado con tipografía compacta -->
-                        <div style="font-size: 12px; color: #334155; line-height: 1.1;">
-                            Estado: <strong>{{ item.estado_texto }}</strong>
-                        </div>
-                        
-                        <!-- Horario ajustado -->
-                        {% if item.horario %}
-                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-top: 2px; line-height: 1.1;">
-                                🕒 {{ item.horario }}
-                            </div>
-                        {% endif %}
+                        <div class="card-info">Estado: <strong>{{ item.estado_texto }}</strong></div>
+                        {% if item.horario %}<div class="card-schedule">🕒 {{ item.horario }}</div>{% endif %}
                     </div>
                     
-                    <!-- SISTEMA DE LIKE Y DISLIKE -->
                     <div class="reaction-container">
-                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'like')">
-                            👍 <span class="like-count">0</span>
-                        </button>
-                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'dislike')">
-                            👎 <span class="dislike-count">0</span>
-                        </button>
+                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'like')">👍 <span class="like-count">0</span></button>
+                        <button class="btn-reaction" onclick="event.stopPropagation(); registrarReaccion(this, 'dislike')">👎 <span class="dislike-count">0</span></button>
                     </div>
 
-                    <!-- Distancia optimizada para que nunca se corte -->
                     {% if item.distancia is not None %}
-                        <div class="distancia-texto" style="color: #15803d; font-weight: bold; font-size: 12px; line-height: 1;">
-                            📍 A {{ item.distancia }} km
-                        </div>
+                        <div class="distancia-texto">📍 A {{ item.distancia }} km</div>
                     {% else %}
-                        <div class="distancia-texto" style="color: #64748b; font-size: 11px; line-height: 1;">
-                            Sin calcular
-                        </div>
+                        <div class="distancia-vacia">Sin calcular</div>
                     {% endif %}
                 </div>
             {% empty %}
-                <p style="font-size: 16px; color: #f8fafc;">No hay ascensores registrados.</p>
+                <p style="color: #f8fafc;">No hay ascensores registrados.</p>
             {% endfor %}
         </div>
     </div>
 
-    <!-- COLUMNA DERECHA: MAPA -->
-    <div id="mapContainer" style="flex: 1.5; height: 100%; transition: flex 0.3s ease;">
-        <div id="map" style="width: 100%; height: 100%; border-radius: 12px; border: 1px solid #334155;"></div>
-    </div>
-
+    <div id="mapContainer"><div id="map"></div></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ ascensores_js|json_script:"ascensores-data" }}
-
 <script>
     const map = L.map('map').setView([-33.0472, -71.6127], 14);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }).addTo(map);
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19,
-        attribution: 'Tiles &copy; Esri'
-    }).addTo(map);
+    const svgIcon = `<svg viewBox="0 0 512 512" fill="currentColor"><path d="M0 64h512v24H0z"/><circle cx="236" cy="76" r="14"/><circle cx="276" cy="76" r="14"/><path d="M256 88v48h-80a12 12 0 00-12 12v24h184v-24a12 12 0 00-12-12h-80V88z"/><path d="M96 216c-17.7 0-32 14.3-32 32v180c0 17.7 14.3 32 32 32h320c17.7 0 32-14.3 32-32V248c0-17.7-14.3-32-32-32H96zm24 24h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm-216 112h320v84H96v-84zm140 24a8 8 0 100 16 8 8 0 000-16z"/></svg>`;
 
-    const svgCableCarIcon = `
-        <svg viewBox="0 0 512 512" fill="currentColor">
-            <path d="M0 64h512v24H0z"/>
-            <circle cx="236" cy="76" r="14"/>
-            <circle cx="276" cy="76" r="14"/>
-            <path d="M256 88v48h-80a12 12 0 00-12 12v24h184v-24a12 12 0 00-12-12h-80V88z"/>
-            <path d="M96 216c-17.7 0-32 14.3-32 32v180c0 17.7 14.3 32 32 32h320c17.7 0 32-14.3 32-32V248c0-17.7-14.3-32-32-32H96zm24 24h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm-216 112h320v84H96v-84zm140 24a8 8 0 100 16 8 8 0 000-16z"/>
-        </svg>
-    `;
+    const datos = JSON.parse(document.getElementById('ascensores-data').textContent);
+    const marcadores = [];
+    const tarjetas = document.querySelectorAll('.card');
+    let seleccionProg = false, userMarker = null;
 
-    const crearIconoVectorial = (estadoClave) => {
-        const estadoLimpio = estadoClave.replace(/\s+/g, '-');
-        return L.divIcon({
-            className: 'custom-marker-wrapper',
-            html: `
-                <div class="elevator-pin-container">
-                    <div class="elevator-pin-body ${estadoLimpio}">
-                        <span class="elevator-pin-icon">${svgCableCarIcon}</span>
-                    </div>
-                </div>
-            `,
-            iconSize: [38, 38],
-            iconAnchor: [19, 19],
-            popupAnchor: [0, -19]
-        });
+    const toggleListaMapa = () => {
+        const sb = document.getElementById('sidebarColumna');
+        sb.classList.toggle('minimized');
+        document.getElementById('textoToggle').innerText = sb.classList.contains('minimized') ? "Restaurar" : "Minimizar";
+        setTimeout(() => map.invalidateSize(), 350);
     };
 
-    const datosAscensores = JSON.parse(document.getElementById('ascensores-data').textContent);
-    const listaMarcadores = [];
-    let tarjetasDOM = document.querySelectorAll('.card');
-    let cambiandoSeleccionProgramatica = false;
-    let userMarker = null;
-
-    function toggleListaMapa() {
-        const sidebar = document.getElementById('sidebarColumna');
-        const texto = document.getElementById('textoToggle');
+    datos.forEach((a, i) => {
+        const m = L.marker([a.lat, a.lng], { icon: L.divIcon({ className: 'custom-marker-wrapper', html: `<div class="elevator-pin-container"><div class="elevator-pin-body ${(a.estado||'').toLowerCase().trim().replace(/\s+/g,'-')}"><span class="elevator-pin-icon">${svgIcon}</span></div></div>`, iconSize: [38, 38], iconAnchor: [19, 19], popupAnchor: [0, -19] }) }).addTo(map);
         
-        sidebar.classList.toggle('minimized');
-        
-        if (sidebar.classList.contains('minimized')) {
-            texto.innerText = "Restaurar";
-        } else {
-            texto.innerText = "Minimizar";
-        }
-        setTimeout(() => { map.invalidateSize(); }, 350);
-    }
-
-    // POPUPS LIMPIOS (SIN FOTOS)
-    datosAscensores.forEach((ascensor, idx) => {
-        const claveEstado = ascensor.estado ? ascensor.estado.toLowerCase().trim() : 'operativo';
-        const iconoVector = crearIconoVectorial(claveEstado);
-        const marker = L.marker([ascensor.lat, ascensor.lng], { icon: iconoVector }).addTo(map);
-        
-        let contenidoPopup = `
-            <div style="width: 190px; font-family: system-ui, sans-serif; padding: 2px;">
-                <b style="font-size: 16px; color: #0f172a; display: block; margin-bottom: 4px;">${ascensor.nombre}</b>
-                <div style="font-size: 13px; color: #334155;">Estado: <strong>${ascensor.estado_texto}</strong></div>
-        `;
-        if (ascensor.horario) contenidoPopup += `<div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 3px;">🕒 ${ascensor.horario}</div>`;
-        if (ascensor.distancia !== null) contenidoPopup += `<div style="font-size: 13px; color: #15803d; font-weight: bold; margin-top: 4px;">📍 A ${ascensor.distancia} km</div>`;
-        contenidoPopup += `</div>`;
-
-        marker.bindPopup(contenidoPopup);
-        marker.on('click', () => { seleccionarElementoPorIndice(idx); });
-        listaMarcadores.push(marker);
+        m.bindPopup(`<div style="width:180px; font-family:sans-serif;"><b>${a.name || a.nombre}</b><br>Estado: ${a.estado_texto}${a.horario?'<br>🕒 '+a.horario:''}${a.distancia!==null?'<br>📍 A '+a.distancia+' km':''}</div>`);
+        m.on('click', () => seleccionar(i));
+        marcadores.push(m);
     });
 
-    function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        return (R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))).toFixed(2);
-    }
-
-    function mostrarUbicacionEnMapa(lat, lon, volar = true) {
-        const iconoUbicacion = L.divIcon({
-            className: 'custom-marker-wrapper',
-            html: `<div class="user-location-ping"><div class="user-location-dot"></div></div>`,
-            iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13]
-        });
-
-        if (userMarker) {
-            userMarker.setLatLng([lat, lon]);
-        } else {
-            userMarker = L.marker([lat, lon], { icon: iconoUbicacion, zIndexOffset: 10000 }).addTo(map);
-            userMarker.bindPopup('<div style="font-family:system-ui; padding:2px;"><b style="font-size:14px; color:#0284c7;">📍 Tu Ubicación Actual</b></div>');
-        }
-        if (volar) {
-            map.flyTo([lat, lon], 16, { duration: 1.5 });
-            userMarker.openPopup();
-        }
-    }
-
-    function actualizarDistanciasEnInterfaz(userLat, userLon) {
-        datosAscensores.forEach((ascensor, idx) => {
-            const dist = calcularDistanciaHaversine(userLat, userLon, ascensor.lat, ascensor.lng);
-            ascensor.distancia = dist;
-            const card = tarjetasDOM[idx];
-            if (card) {
-                const distContainer = card.querySelector('.distancia-texto');
-                if (distContainer) {
-                    distContainer.style.color = "#15803d";
-                    distContainer.style.fontWeight = "bold";
-                    distContainer.style.fontSize = "12px";
-                    distContainer.innerText = `📍 A ${dist} km`;
-                }
-            }
-        });
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const userLat = parseFloat(urlParams.get('lat'));
-    const userLon = parseFloat(urlParams.get('lon'));
-
-    if (!isNaN(userLat) && !isNaN(userLon)) {
-        mostrarUbicacionEnMapa(userLat, userLon, false);
-    } else if (listaMarcadores.length > 0) {
-        const grupo = L.featureGroup(listaMarcadores);
-        map.fitBounds(grupo.getBounds().pad(0.1));
-    }
-
-    setTimeout(() => { map.invalidateSize(); }, 200);
-
-    function obtenerUbicacionYCalcular() {
-        const btn = document.getElementById('btnUbicacion');
-        if (btn) btn.innerText = "⏳ Obteniendo...";
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    if (btn) btn.innerText = "📍 Mi Ubicación";
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    mostrarUbicacionEnMapa(lat, lon, true);
-                    actualizarDistanciasEnInterfaz(lat, lon);
-                    window.history.replaceState({}, '', `?lat=${lat}&lon=${lon}`);
-                },
-                (error) => {
-                    if (btn) btn.innerText = "📍 Mi Ubicación";
-                    alert("No pudimos obtener tu ubicación. Activa los permisos en tu navegador.");
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        } else {
-            if (btn) btn.innerText = "📍 Mi Ubicación";
-            alert("Navegador sin soporte de geolocalización.");
-        }
-    }
-
-    function resetearAnimacionesMapa() {
+    const seleccionar = (i) => {
+        seleccionProg = true;
+        tarjetas.forEach(c => c.classList.remove('selected'));
+        if (tarjetas[i]) tarjetas[i].classList.add('selected');
         document.querySelectorAll('.elevator-pin-container').forEach(el => el.classList.remove('is-selected'));
-    }
-
-    function seleccionarElementoPorIndice(idx) {
-        cambiandoSeleccionProgramatica = true;
-        tarjetasDOM.forEach(c => c.classList.remove('selected'));
-        if (tarjetasDOM[idx]) tarjetasDOM[idx].classList.add('selected');
-
-        resetearAnimacionesMapa();
-        const ascensor = datosAscensores[idx];
-        const marker = listaMarcadores[idx];
-
-        if (marker && ascensor) {
-            const markerDOM = marker.getElement();
-            if (markerDOM) {
-                const pinContainer = markerDOM.querySelector('.elevator-pin-container');
-                if (pinContainer) pinContainer.classList.add('is-selected');
-            }
-            map.flyTo([ascensor.lat, ascensor.lng], 16, { duration: 1.2, easeLinearity: 0.25 });
-            marker.openPopup();
+        
+        const m = marcadores[i], a = datos[i];
+        if (m && a) {
+            const dom = m.getElement();
+            if (dom) dom.querySelector('.elevator-pin-container')?.classList.add('is-selected');
+            map.flyTo([a.lat, a.lng], 16, { duration: 1.2 });
+            m.openPopup();
         }
-        setTimeout(() => { cambiandoSeleccionProgramatica = false; }, 100);
-    }
+        setTimeout(() => seleccionProg = false, 100);
+    };
 
-    document.addEventListener('click', function(e) {
-        const card = e.target.closest('.card');
-        if (card && !e.target.closest('.btn-reaction')) {
-            const idx = parseInt(card.getAttribute('data-index'), 10);
-            seleccionarElementoPorIndice(idx);
-        }
+    document.addEventListener('click', e => {
+        const c = e.target.closest('.card');
+        if (c && !e.target.closest('.btn-reaction')) seleccionar(parseInt(c.dataset.index, 10));
     });
 
     map.on('popupclose', () => {
-        if (!cambiandoSeleccionProgramatica) {
-            resetearAnimacionesMapa();
-            tarjetasDOM.forEach(c => c.classList.remove('selected'));
+        if (!seleccionProg) {
+            document.querySelectorAll('.elevator-pin-container').forEach(el => el.classList.remove('is-selected'));
+            tarjetas.forEach(c => c.classList.remove('selected'));
         }
     });
 
-    // LÓGICA DEL SISTEMA DE LIKES Y DISLIKES
-    function registrarReaccion(button, tipo) {
-        const container = button.closest('.reaction-container');
-        const likeBtn = container.querySelector('.btn-reaction:nth-child(1)');
-        const dislikeBtn = container.querySelector('.btn-reaction:nth-child(2)');
-        
-        const likeCountSpan = likeBtn.querySelector('.like-count');
-        const dislikeCountSpan = dislikeBtn.querySelector('.dislike-count');
-        
-        let likes = parseInt(likeCountSpan.innerText);
-        let dislikes = parseInt(dislikeCountSpan.innerText);
+    const haversine = (lat1, lon1, lat2, lon2) => {
+        const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
+    };
+
+    const obtenerUbicacionYCalcular = () => {
+        const btn = document.getElementById('btnUbicacion');
+        btn.innerText = "⏳ Obteniendo...";
+        navigator.geolocation?.getCurrentPosition(pos => {
+            btn.innerText = "📍 Mi Ubicación";
+            const {latitude: lat, longitude: lon} = pos.coords;
+            if (userMarker) userMarker.setLatLng([lat, lon]);
+            else userMarker = L.marker([lat, lon], { icon: L.divIcon({ className: 'custom-marker-wrapper', html: '<div class="user-location-ping"><div class="user-location-dot"></div></div>', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 10000 }).addTo(map).bindPopup('<b>Tu Ubicación</b>');
+            
+            map.flyTo([lat, lon], 16, { duration: 1.5 });
+            userMarker.openPopup();
+            
+            datos.forEach((a, i) => {
+                const dist = haversine(lat, lon, a.lat, a.lng);
+                const el = tarjetas[i].querySelector('.distancia-texto') || tarjetas[i].querySelector('.distancia-vacia');
+                if(el) { el.className = 'distancia-texto'; el.innerText = `📍 A ${dist} km`; }
+            });
+            window.history.replaceState({}, '', `?lat=${lat}&lon=${lon}`);
+        }, () => { btn.innerText = "📍 Mi Ubicación"; alert("Error al obtener ubicación."); }, { enableHighAccuracy: true });
+    };
+
+    const urlP = new URLSearchParams(location.search);
+    const uLat = parseFloat(urlP.get('lat')), uLon = parseFloat(urlP.get('lon'));
+    if (!isNaN(uLat) && !isNaN(uLon)) {
+        userMarker = L.marker([uLat, uLon], { icon: L.divIcon({ className: 'custom-marker-wrapper', html: '<div class="user-location-ping"><div class="user-location-dot"></div></div>', iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(map);
+    } else if (marcadores.length) {
+        map.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.1));
+    }
+    setTimeout(() => map.invalidateSize(), 200);
+
+    window.registrarReaccion = (btn, tipo) => {
+        const c = btn.closest('.reaction-container');
+        const lBtn = c.children[0], dBtn = c.children[1];
+        const lSpan = lBtn.querySelector('.like-count'), dSpan = dBtn.querySelector('.dislike-count');
+        let likes = parseInt(lSpan.innerText), dislikes = parseInt(dSpan.innerText);
 
         if (tipo === 'like') {
-            if (likeBtn.classList.contains('liked')) {
-                likeBtn.classList.remove('liked');
-                likes -= 1;
-            } else {
-                likeBtn.classList.add('liked');
-                likes += 1;
-                if (dislikeBtn.classList.contains('disliked')) {
-                    dislikeBtn.classList.remove('disliked');
-                    dislikes -= 1;
-                }
-            }
-        } else if (tipo === 'dislike') {
-            if (dislikeBtn.classList.contains('disliked')) {
-                dislikeBtn.classList.remove('disliked');
-                dislikes -= 1;
-            } else {
-                dislikeBtn.classList.add('disliked');
-                dislikes += 1;
-                if (likeBtn.classList.contains('liked')) {
-                    likeBtn.classList.remove('liked');
-                    likes -= 1;
-                }
-            }
+            lBtn.classList.toggle('liked');
+            likes += lBtn.classList.contains('liked') ? 1 : -1;
+            if (dBtn.classList.contains('disliked')) { dBtn.classList.remove('disliked'); dislikes--; }
+        } else {
+            dBtn.classList.toggle('disliked');
+            dislikes += dBtn.classList.contains('disliked') ? 1 : -1;
+            if (lBtn.classList.contains('liked')) { lBtn.classList.remove('liked'); likes--; }
         }
-
-        likeCountSpan.innerText = likes;
-        dislikeCountSpan.innerText = dislikes;
-    }
+        lSpan.innerText = likes; dSpan.innerText = dislikes;
+    };
 </script>
 {% endblock %}
