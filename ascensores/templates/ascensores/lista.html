@@ -2,22 +2,28 @@
 {% load static %}
 
 {% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
     #mainContainer { display: flex; height: 100vh; width: 100%; padding: 10px 14px; gap: 12px; box-sizing: border-box; overflow: hidden; }
     #sidebarColumna { flex: 1; display: flex; flex-direction: column; height: 100%; padding: 4px 6px; transition: all 0.35s ease; min-width: 0; }
-    #sidebarColumna.minimized { flex: 0 0 70px !important; overflow: hidden; }
-    #sidebarColumna.minimized .card-grid-container, #sidebarColumna.minimized .sidebar-title-text, #sidebarColumna.minimized #btnUbicacion { display: none !important; }
-    #sidebarColumna.minimized .sidebar-header { justify-content: center !important; }
+    
+    /* ESTADO MINIMIZADO CORREGIDO PARA QUE NO SE CORTE NADA */
+    #sidebarColumna.minimized { flex: 0 0 75px !important; overflow: hidden; align-items: center; }
+    #sidebarColumna.minimized .card-grid-container, 
+    #sidebarColumna.minimized .sidebar-title-text, 
+    #sidebarColumna.minimized #btnUbicacion { display: none !important; }
+    #sidebarColumna.minimized .sidebar-header { justify-content: center !important; width: 100%; padding: 0; }
+    #sidebarColumna.minimized #btnToggleLista { padding: 8px; justify-content: center; width: 45px; }
+    #sidebarColumna.minimized #textoToggle { display: none !important; }
 
     .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px; }
     .sidebar-title-text { margin: 0; font-size: 1.35rem; color: #f8fafc; white-space: nowrap; }
     
-    #btnToggleLista { background-color: #334155; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
-    #btnUbicacion { background-color: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
-    #btnUbicacion:hover { background-color: #0369a1; }
+    #btnToggleLista { background: #334155; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
+    #btnUbicacion { background: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    #btnUbicacion:hover { background: #0369a1; }
 
     .card-grid-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); gap: 6px; flex: 1; overflow-y: auto; padding-right: 4px; }
-    
     .card { background: #fff; border: 1px solid #334155; border-radius: 9px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; box-shadow: 0 3px 5px rgba(0,0,0,0.25); transition: 0.2s; }
     .card:hover { transform: translateY(-2px); border-color: #38bdf8; }
     .card.selected { background: #e0f2fe !important; border: 2px solid #0284c7 !important; transform: scale(1.02); z-index: 10; }
@@ -44,7 +50,8 @@
     .custom-marker-wrapper { background: transparent !important; border: none !important; }
     .elevator-pin-container { width: 38px; height: 38px; position: relative; transition: transform 0.35s; }
     .elevator-pin-body { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2.5px solid #fff; position: absolute; box-shadow: 0 4px 10px rgba(0,0,0,0.35); }
-    .elevator-pin-icon svg { width: 24px; height: 24px; fill: currentColor; }
+    .elevator-pin-icon svg { width: 20px; height: 20px; fill: currentColor; }
+    
     .elevator-pin-body.operativo { background: #16a34a; } .elevator-pin-body.cerrado { background: #dc2626; }
     .elevator-pin-body.mantencion, .elevator-pin-body.en-mantencion { background: #eab308; } .elevator-pin-body.institucional { background: #9333ea; }
 
@@ -59,7 +66,7 @@
         <div class="sidebar-header">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <h2 class="sidebar-title-text">Ascensores</h2>
-                <button onclick="toggleListaMapa()" id="btnToggleLista">🗺️ <span id="textoToggle">Minimizar</span></button>
+                <button onclick="toggleListaMapa()" id="btnToggleLista" title="Minimizar/Restaurar">🗺️ <span id="textoToggle">Minimizar</span></button>
             </div>
             <button id="btnUbicacion" onclick="obtenerUbicacionYCalcular()">📍 Mi Ubicación</button>
         </div>
@@ -100,14 +107,22 @@
 {% block scripts %}
 {{ ascensores_js|json_script:"ascensores-data" }}
 <script>
-    const map = L.map('map').setView([-33.0472, -71.6127], 14);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }).addTo(map);
+    const map = L.map('map', {
+        minZoom: 11,
+        maxBounds: [[-33.25, -71.85], [-32.85, -71.35]],
+        maxBoundsViscosity: 1.0
+    }).setView([-33.0472, -71.6127], 14);
 
-    const svgIcon = `<svg viewBox="0 0 512 512" fill="currentColor"><path d="M0 64h512v24H0z"/><circle cx="236" cy="76" r="14"/><circle cx="276" cy="76" r="14"/><path d="M256 88v48h-80a12 12 0 00-12 12v24h184v-24a12 12 0 00-12-12h-80V88z"/><path d="M96 216c-17.7 0-32 14.3-32 32v180c0 17.7 14.3 32 32 32h320c17.7 0 32-14.3 32-32V248c0-17.7-14.3-32-32-32H96zm24 24h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm96 0h56c4.4 0 8 3.6 8 8v72c0 4.4-3.6 8-8 8h-56c-4.4 0-8-3.6-8-8v-72c0-4.4 3.6-8 8-8zm-216 112h320v84H96v-84zm140 24a8 8 0 100 16 8 8 0 000-16z"/></svg>`;
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+        maxZoom: 19, 
+        noWrap: true, 
+        attribution: 'Esri' 
+    }).addTo(map);
+
+    const svgIcon = `<svg viewBox="0 0 512 512" fill="currentColor"><path d="M448 160H64c-17.7 0-32 14.3-32 32v160c0 17.7 14.3 32 32 32h384c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-320 96c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm96 0c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm96 0c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zM64 416h384c17.7 0 32 14.3 32 32s-14.3 32-32 32H64c-17.7 0-32-14.3-32-32s14.3-32 32-32zM80 96h352c17.7 0 32-14.3 32-32s-14.3-32-32-32H80C62.3 32 48 46.3 48 64s14.3 32 32 32z"/></svg>`;
 
     const datos = JSON.parse(document.getElementById('ascensores-data').textContent);
-    const marcadores = [];
-    const tarjetas = document.querySelectorAll('.card');
+    const marcadores = [], tarjetas = document.querySelectorAll('.card');
     let seleccionProg = false, userMarker = null;
 
     const toggleListaMapa = () => {
@@ -119,7 +134,6 @@
 
     datos.forEach((a, i) => {
         const m = L.marker([a.lat, a.lng], { icon: L.divIcon({ className: 'custom-marker-wrapper', html: `<div class="elevator-pin-container"><div class="elevator-pin-body ${(a.estado||'').toLowerCase().trim().replace(/\s+/g,'-')}"><span class="elevator-pin-icon">${svgIcon}</span></div></div>`, iconSize: [38, 38], iconAnchor: [19, 19], popupAnchor: [0, -19] }) }).addTo(map);
-        
         m.bindPopup(`<div style="width:180px; font-family:sans-serif;"><b>${a.name || a.nombre}</b><br>Estado: ${a.estado_texto}${a.horario?'<br>🕒 '+a.horario:''}${a.distancia!==null?'<br>📍 A '+a.distancia+' km':''}</div>`);
         m.on('click', () => seleccionar(i));
         marcadores.push(m);
@@ -130,11 +144,9 @@
         tarjetas.forEach(c => c.classList.remove('selected'));
         if (tarjetas[i]) tarjetas[i].classList.add('selected');
         document.querySelectorAll('.elevator-pin-container').forEach(el => el.classList.remove('is-selected'));
-        
         const m = marcadores[i], a = datos[i];
         if (m && a) {
-            const dom = m.getElement();
-            if (dom) dom.querySelector('.elevator-pin-container')?.classList.add('is-selected');
+            m.getElement()?.querySelector('.elevator-pin-container')?.classList.add('is-selected');
             map.flyTo([a.lat, a.lng], 16, { duration: 1.2 });
             m.openPopup();
         }
@@ -167,10 +179,8 @@
             const {latitude: lat, longitude: lon} = pos.coords;
             if (userMarker) userMarker.setLatLng([lat, lon]);
             else userMarker = L.marker([lat, lon], { icon: L.divIcon({ className: 'custom-marker-wrapper', html: '<div class="user-location-ping"><div class="user-location-dot"></div></div>', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 10000 }).addTo(map).bindPopup('<b>Tu Ubicación</b>');
-            
             map.flyTo([lat, lon], 16, { duration: 1.5 });
             userMarker.openPopup();
-            
             datos.forEach((a, i) => {
                 const dist = haversine(lat, lon, a.lat, a.lng);
                 const el = tarjetas[i].querySelector('.distancia-texto') || tarjetas[i].querySelector('.distancia-vacia');
@@ -187,14 +197,13 @@
     } else if (marcadores.length) {
         map.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.1));
     }
-    setTimeout(() => map.invalidateSize(), 200);
+    setTimeout(() => map.invalidateSize(), 300);
 
     window.registrarReaccion = (btn, tipo) => {
         const c = btn.closest('.reaction-container');
         const lBtn = c.children[0], dBtn = c.children[1];
         const lSpan = lBtn.querySelector('.like-count'), dSpan = dBtn.querySelector('.dislike-count');
         let likes = parseInt(lSpan.innerText), dislikes = parseInt(dSpan.innerText);
-
         if (tipo === 'like') {
             lBtn.classList.toggle('liked');
             likes += lBtn.classList.contains('liked') ? 1 : -1;
